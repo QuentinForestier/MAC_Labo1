@@ -2,8 +2,11 @@ package ch.heig.mac;
 
 import java.util.List;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
+
+import static com.couchbase.client.java.query.QueryOptions.queryOptions;
 
 
 public class Requests {
@@ -52,7 +55,7 @@ public class Requests {
         QueryResult result = cluster.query(
                 "SELECT imdb.id, imdb.rating, `cast` \n" +
                          "FROM `mflix-sample`.`_default`.`movies` \n" +
-                         "WHERE \"" + actor + "\" IN `cast` AND imdb.rating > 9;"
+                         "WHERE ? IN `cast` AND imdb.rating > 9;", queryOptions().parameters(JsonArray.from(actor))
         );
         return result.rowsAsObject();
     }
@@ -62,7 +65,12 @@ public class Requests {
     }
 
     public List<JsonObject> confusingMovies() {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query(
+                "SELECT _id AS movie_id, title \n" +
+                         "FROM `mflix-sample`.`_default`.`movies` \n" +
+                         "WHERE ARRAY_LENGTH(directors) > 20; \n"
+        );
+        return result.rowsAsObject();
     }
 
     public List<JsonObject> commentsOfDirector1(String director) {

@@ -27,5 +27,7 @@ public class Main {
         indices.createRequiredIndices();
 
         requests.getCollectionNames().forEach(System.out::println);
+
+        requests.bestMoviesOfActor("Al Pacino").forEach(System.out::println);
     }
 }
