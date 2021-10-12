@@ -81,10 +81,11 @@ public class Requests
     public List<JsonObject> plentifulDirectors()
     {
         QueryResult result = cluster.query(
-                "SELECT director_name, COUNT(1) count_film\n" +
+                "SELECT director_name, COUNT(*) count_film\n" +
                         "FROM `mflix-sample`._default.movies\n" +
                         "UNNEST directors director_name\n" +
-                        "GROUP BY director_name"
+                        "GROUP BY director_name\n" +
+                        "HAVING COUNT(*) > 30"
         );
 
         return result.rowsAs(JsonObject.class);
@@ -108,7 +109,8 @@ public class Requests
                         "FROM `mflix-sample`._default.movies\n" +
                         "JOIN `mflix-sample`._default.comments ON movies._id " +
                         "= comments.movie_id\n" +
-                        "WHERE \"" + director + "\" IN movies.directors"
+                        "WHERE ? IN movies.directors",
+                queryOptions().parameters(JsonArray.from(director))
         );
         return result.rowsAs(JsonObject.class);
     }
@@ -121,8 +123,8 @@ public class Requests
                         "WHERE movie_id IN (\n" +
                         "  SELECT RAW _id\n" +
                         "  FROM `mflix-sample`._default.movies\n" +
-                        "  WHERE \"" + director + "\" IN directors\n" +
-                        " )"
+                        "  WHERE ? IN directors)",
+                queryOptions().parameters(JsonArray.from(director))
         );
 
         return result.rowsAs(JsonObject.class);
