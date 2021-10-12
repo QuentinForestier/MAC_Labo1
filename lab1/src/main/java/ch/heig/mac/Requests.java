@@ -6,6 +6,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.java.query.QueryStatus;
 
 import static com.couchbase.client.java.query.QueryOptions.queryOptions;
 
@@ -118,12 +119,28 @@ public class Requests
     // Returns true if the update was successful.
     public Boolean removeEarlyProjection(String movieId)
     {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query(
+                "UPDATE `mflix-sample`.`_default`.theaters AS t \n" +
+                         "SET t.schedule = ARRAY v FOR v IN t.schedule WHEN v.hourBegin > \"18:00:00\" END \n" +
+                         "WHERE ANY v IN t.schedule SATISFIES v.hourBegin <= \"18:00:00\" AND v.movieId = ? END",
+                queryOptions().parameters(JsonArray.from(movieId))
+        );
+
+        return result.metaData().status() == QueryStatus.SUCCESS;
     }
 
     public List<JsonObject> nightMovies()
     {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query(
+                "SELECT ms.movieId movie_id, m.title \n" +
+                        "FROM ( SELECT sched.movieId, ARRAY_AGG(sched.hourBegin) schedules \n" +
+                               "FROM `mflix-sample`.`_default`.theaters t UNNEST t.schedule AS sched \n" +
+                               "GROUP BY sched.movieId) AS ms \n" +
+                        "JOIN `mflix-sample`.`_default`.movies m \n" +
+                          "ON m._id = ms.movieId \n" +
+                        "WHERE EVERY startTime IN ms.schedules SATISFIES startTime > \"18:00:00\" END" );
+
+        return result.rowsAsObject();
     }
 
 
