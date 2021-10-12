@@ -71,8 +71,9 @@ public class Requests
         QueryResult result = cluster.query(
                 "SELECT imdb.id, imdb.rating, `cast` \n" +
 
-                         "FROM `mflix-sample`.`_default`.`movies` \n" +
-                         "WHERE ? IN `cast` AND imdb.rating > 9;", queryOptions().parameters(JsonArray.from(actor))
+                        "FROM `mflix-sample`.`_default`.`movies` \n" +
+                        "WHERE ? IN `cast` AND imdb.rating > 9;",
+                queryOptions().parameters(JsonArray.from(actor))
         );
         return result.rowsAsObject();
     }
@@ -90,11 +91,12 @@ public class Requests
     }
 
 
-    public List<JsonObject> confusingMovies() {
+    public List<JsonObject> confusingMovies()
+    {
         QueryResult result = cluster.query(
                 "SELECT _id AS movie_id, title \n" +
-                         "FROM `mflix-sample`.`_default`.`movies` \n" +
-                         "WHERE ARRAY_LENGTH(directors) > 20; \n"
+                        "FROM `mflix-sample`.`_default`.`movies` \n" +
+                        "WHERE ARRAY_LENGTH(directors) > 20; \n"
         );
         return result.rowsAsObject();
     }
@@ -113,7 +115,17 @@ public class Requests
 
     public List<JsonObject> commentsOfDirector2(String director)
     {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query(
+                "SELECT movie_id, text\n" +
+                        "FROM `mflix-sample`._default.comments\n" +
+                        "WHERE movie_id IN (\n" +
+                        "  SELECT RAW _id\n" +
+                        "  FROM `mflix-sample`._default.movies\n" +
+                        "  WHERE \"" + director + "\" IN directors\n" +
+                        " )"
+        );
+
+        return result.rowsAs(JsonObject.class);
     }
 
     // Returns true if the update was successful.
@@ -121,8 +133,10 @@ public class Requests
     {
         QueryResult result = cluster.query(
                 "UPDATE `mflix-sample`.`_default`.theaters AS t \n" +
-                         "SET t.schedule = ARRAY v FOR v IN t.schedule WHEN v.hourBegin > \"18:00:00\" END \n" +
-                         "WHERE ANY v IN t.schedule SATISFIES v.hourBegin <= \"18:00:00\" AND v.movieId = ? END",
+                        "SET t.schedule = ARRAY v FOR v IN t.schedule WHEN v" +
+                        ".hourBegin > \"18:00:00\" END \n" +
+                        "WHERE ANY v IN t.schedule SATISFIES v.hourBegin <= " +
+                        "\"18:00:00\" AND v.movieId = ? END",
                 queryOptions().parameters(JsonArray.from(movieId))
         );
 
@@ -133,12 +147,15 @@ public class Requests
     {
         QueryResult result = cluster.query(
                 "SELECT ms.movieId movie_id, m.title \n" +
-                        "FROM ( SELECT sched.movieId, ARRAY_AGG(sched.hourBegin) schedules \n" +
-                               "FROM `mflix-sample`.`_default`.theaters t UNNEST t.schedule AS sched \n" +
-                               "GROUP BY sched.movieId) AS ms \n" +
+                        "FROM ( SELECT sched.movieId, ARRAY_AGG(sched" +
+                        ".hourBegin) schedules \n" +
+                        "FROM `mflix-sample`.`_default`.theaters t UNNEST t" +
+                        ".schedule AS sched \n" +
+                        "GROUP BY sched.movieId) AS ms \n" +
                         "JOIN `mflix-sample`.`_default`.movies m \n" +
-                          "ON m._id = ms.movieId \n" +
-                        "WHERE EVERY startTime IN ms.schedules SATISFIES startTime > \"18:00:00\" END" );
+                        "ON m._id = ms.movieId \n" +
+                        "WHERE EVERY startTime IN ms.schedules SATISFIES " +
+                        "startTime > \"18:00:00\" END");
 
         return result.rowsAsObject();
     }

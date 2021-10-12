@@ -3,39 +3,52 @@ package ch.heig.mac;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
 import com.couchbase.client.core.error.IndexExistsException;
 import com.couchbase.client.java.Cluster;
 
-public class Indices {
+public class Indices
+{
     private final Cluster cluster;
 
     protected Map<Integer, List<String>> requiredIndices = Map.ofEntries(
             // TODO: For each query, if needed, add the index creation requests
-            // Map.entry(<question num>, List.of("CREATE INDEX ...", "CREATE INDEX ..."))
+            // Map.entry(<question num>, List.of("CREATE INDEX ...", "CREATE
+            // INDEX ..."))
             Map.entry(7, List.of("CREATE INDEX adv_movie_id ON " +
                     "`default`:`mflix-sample`.`_default`.`comments`" +
                     "(`movie_id`)\n" +
-                    "\n"))
+                    "\n")),
+            Map.entry(9, List.of("CREATE INDEX adv_id ON " +
+                    "`default`:`mflix-sample`.`_default`.`movies`(`_id`)"))
     );
 
-    public Indices(Cluster cluster) {
+    public Indices(Cluster cluster)
+    {
         this.cluster = cluster;
     }
 
-    private void createIndex(String createQuery) {
-        try {
+    private void createIndex(String createQuery)
+    {
+        try
+        {
             cluster.query(createQuery);
-        } catch (IndexExistsException ex) {
+        }
+        catch (IndexExistsException ex)
+        {
             // Ignore already existing index
-            // You may need to manually delete old indices if you change them in this class after executing this method
+            // You may need to manually delete old indices if you change them
+            // in this class after executing this method
         }
     }
 
-    public void createRequiredIndicesOf(int questionNum) {
+    public void createRequiredIndicesOf(int questionNum)
+    {
         requiredIndices.getOrDefault(questionNum, List.of()).forEach(this::createIndex);
     }
 
-    public void createRequiredIndices() {
+    public void createRequiredIndices()
+    {
         requiredIndices.values()
                 .stream()
                 .flatMap(Collection::stream)
